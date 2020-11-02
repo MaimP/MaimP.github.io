@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <title>Cryptocurrencie analysing</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+  <script src="node_modules/pouchdb/dist/pouchdb.js"></script>
+  <script src="node_modules/pouchdb/dist/pouchdb.find.js"></script>
+  <script src="node_modules/pouchdb/dist/pouchdb.min.js"></script>
+  <script type="text/javascript" src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+  <script src="node_modules/moment/moment.js"></script>
+  <script type="text/javascript">
+  var DataPoints = [];
+    var db = new PouchDB('http://admin:0000@192.168.178.41:5984/crypto')
+    console.log(db)
+    db.info().then(function (info) {
+      console.log(info);
+    })
+
+
+    var ids;
+    function getIds() {
+      db.get('ids').then(function (doc) {
+        console.log(doc)
+        ids = doc
+      })
+    }
+
+    function updateData() {
+      console.log("update")
+    }
+
+    function getAllData() {
+      getIds()
+      for (let i in ids) {
+        getDocument(i)
+      }
+    }
+
+
+      db.get('bitcoin').then(function (imp) {
+        console.log(imp)
+        var dict;
+        var label;
+        var y;
+        var counter = 0;
+        for (let a in imp) {
+          if (counter >= 2) {
+            console.log("a: " + a);
+            var doc_price_obj = imp[a]
+            console.log(doc_price_obj);
+            var date_time = moment(a).format('YYYY-MM-DD HH:mm:ss');
+            var doc_price = doc_price_obj.price;
+            console.log("dock_price" + doc_price);
+            dict = {label: date_time, y: doc_price};
+            console.log("dict:")
+            console.log(dict)
+            DataPoints.push(dict);
+          }
+          counter += 1;
+        }
+      }).then( function () {
+  //      window.onload = function () {
+            console.log("test");
+            console.log(DataPoints)
+            var chart = new CanvasJS.Chart("chartContainer",
+            {
+
+              title:{
+              text: "Bitcoin"
+              },
+               data: [
+              {
+                type: "line",
+
+                dataPoints: DataPoints
+              }
+              ]
+            });
+
+            console.log("vor render")
+
+
+            chart.render();
+            console.log("render")
+//          }
+      });
+
+
+
+    //for chart
+    function chart() {
+      window.onload = function () {
+          console.log("test");
+          console.log(DataPoints)
+          var chart = new CanvasJS.Chart("chartContainer",
+          {
+
+            title:{
+            text: "Bitcoin"
+            },
+             data: [
+            {
+              type: "line",
+
+              dataPoints: DataPoints
+            }
+            ]
+          });
+
+          console.log("vor render")
+
+
+          chart.render();
+          console.log("render")
+        }
+    }
+
+
+  </script>
+</head>
+<body>
+  <div id="chartContainer" style="height: 300px; width: 100%;"></div>
+
+</body>
+
+</html>
