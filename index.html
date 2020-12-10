@@ -5,122 +5,218 @@
   <meta charset="utf-8">
   <title>Cryptocurrencie analysing</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/pouchdb@7.2.1/dist/pouchdb.min.js"></script>
-  <script type="text/javascript" src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pouchdb@7.2.1/dist/pouchdb.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+  <script type="text/javascript" src="https://canvasjs.com/assets/script/canvasjs.stock.min.js"></script>
+  <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
   <script type="text/javascript">
-  var DataPoints = [];
-    var db = new PouchDB('http://admin:0000@192.168.178.41:5984/crypto')
-    console.log(db)
-    db.info().then(function (info) {
-      console.log(info);
-    })
 
+    var names = {};
 
-    var ids;
-    function getIds() {
-      db.get('ids').then(function (doc) {
-        console.log(doc)
-        ids = doc
-      })
+    var db = new PouchDB('https://3ffa1a56-7379-4c15-8384-d5bfbb10abce-bluemix:5ee1b0b316e69e42d89479dda45999bbdfcaa5412bea04d820688939de4adcd1@3ffa1a56-7379-4c15-8384-d5bfbb10abce-bluemix.cloudantnosqldb.appdomain.cloud/crypto');
+    var changes = db.changes({
+      since: 'now',
+      live: true,
+      include_docs: true
+    }).on('change', function(change) {
+      // handle change
+      console.log("change");
+    //  searchForChart(change)
+
+    }).on('complete', function(info) {
+      // changes() was canceled
+      console.log("complete");
+    }).on('error', function (err) {
+      console.log("error");
+      console.log(err);
+    });
+
+    async function getData(id){
+      let data = await db.get(id)
+      return data
     }
 
-    function updateData() {
-      console.log("update")
-    }
-
-    function getAllData() {
-      getIds()
-      for (let i in ids) {
-        getDocument(i)
+    async function makeDataPoints(id) {
+      var data = await getData(id);
+      id = id.replace(/-/g, '_');
+      eval('data' + id + ' = [];')
+      var datapoints = []
+      var counter = 0;
+      for (let i in data) {
+        if (counter >= 2) {
+          var price = data[i].price
+          var obj = {x: new Date(i), y: price};
+          eval('data' + id + '.push(obj);')
+        }
+        counter += 1;
       }
+      eval('var data = data' + id)
+      return data
     }
 
-
-      db.get('bitcoin').then(function (imp) {
-        console.log(imp)
-        var dict;
-        var label;
-        var y;
-        var counter = 0;
-        for (let a in imp) {
+    async function makeOptions() {
+      var ids = await getData('ids')
+      console.log(ids)
+      var counter = 0;
+      for (let i = 0; i <= 1; i++) {
+        if (i == 0) {
+          var elem = document.getElementById('selectopt0')
+        } else {
+          var elem = document.getElementById('selectopt1')
+          counter = 0
+        }
+        for (let a in ids) {
           if (counter >= 2) {
-            console.log("a: " + a);
-            var doc_price_obj = imp[a]
-            console.log(doc_price_obj);
-            var date_time = moment(a).format('YYYY-MM-DD HH:mm:ss');
-            var doc_price = doc_price_obj.price;
-            console.log("dock_price" + doc_price);
-            dict = {label: date_time, y: doc_price};
-            console.log("dict:")
-            console.log(dict)
-            DataPoints.push(dict);
-          }
-          counter += 1;
-        }
-      }).then( function () {
-  //      window.onload = function () {
-            console.log("test");
-            console.log(DataPoints)
-            var chart = new CanvasJS.Chart("chartContainer",
-            {
+            if (!('ready' in names)) {
+              names[a] = ids[a]
 
-              title:{
-              text: "Bitcoin"
-              },
-               data: [
-              {
-                type: "line",
-
-                dataPoints: DataPoints
-              }
-              ]
-            });
-
-            console.log("vor render")
-
-
-            chart.render();
-            console.log("render")
-//          }
-      });
-
-
-
-    //for chart
-    function chart() {
-      window.onload = function () {
-          console.log("test");
-          console.log(DataPoints)
-          var chart = new CanvasJS.Chart("chartContainer",
-          {
-
-            title:{
-            text: "Bitcoin"
-            },
-             data: [
-            {
-              type: "line",
-
-              dataPoints: DataPoints
             }
-            ]
-          });
-
-          console.log("vor render")
-
-
-          chart.render();
-          console.log("render")
+            var selectopt = document.createElement('OPTION')
+            var textelem = document.createTextNode(a)
+            selectopt.appendChild(textelem)
+            elem.appendChild(selectopt)
+          }
+          counter++;
         }
+      }
+      names['ready'] = 'ready'
+      console.log(names)
     }
 
 
-  </script>
+    async function makeChart(idChart) {
+      if (idChart == 'chartContainer0') {
+        var header = document.getElementById('selectopt0').value;
+        var id = names[header];
+        console.log(id)
+      } else {
+        var header = document.getElementById('selectopt1').value;
+        var id = names[header]
+        console.log(id)
+      }
+      var dps = await makeDataPoints(id);
+      console.log(dps[1].x)
+      let date = dps[1].x
+      let isoDate = date.toISOString()
+      console.log(isoDate)
+      let timeArr = isoDate.split('-');
+      console.log(timeArr)
+      let dayArr = timeArr[2].split('T')
+      console.log(dayArr)
+      var chart = new CanvasJS.Chart(idChart, {
+        title :{
+          text: header
+        },
+        data: [
+          {
+            type: 'line',
+            dataPoints: dps
+          }
+        ]
+      });
+      chart.render();
+
+      var xVal = 0;
+      var yVal = 100;
+      var updateInterval = 1000;
+      var dataLength = 300; // number of dataPoints visible at any point
+
+      var updateChart = function (count) {
+
+        count = count || 1;
+
+        for (var j = 0; j < count; j++) {
+          yVal = yVal +  Math.round(5 + Math.random() *(-5-5));
+          dps.push({
+            x: xVal,
+            y: yVal
+          });
+          xVal++;
+        }
+
+        if (dps.length > dataLength) {
+          dps.shift();
+        }
+
+        chart.render();
+      };
+
+    //  updateChart(dataLength);
+    //  setInterval(function(){updateChart()}, updateInterval);
+
+      }
+
+    function timeLine() {
+      return
+    }
+
+    function submitChart(chartID, coinID) {
+      return
+    }
+
+    function updateValue(id, val) {
+      document.getElementById(id).value = val;
+    }
+
+    makeOptions()
+    var testData = makeDataPoints('ethereum-classic');
+    console.log(testData)
+
+</script>
 </head>
 <body>
-  <div id="chartContainer" style="height: 300px; width: 100%;"></div>
-
+  <section class="section">
+    <div class="container">
+      <h1 class="title">prices of cryptocurrencys</h1>
+      <div class="content">
+        <p>
+          Wähle aus welchen Chart du angezeigt bekommen möchtest. Du kannst auch einen
+          zweiten Coin mithinzufügen oder einen neuen Chart erstellen.
+        </p>
+      </div>
+      <div class="level">
+        <div class="level left">
+          <div class="level-item">
+            <div class="select">
+              <select id="selectopt0"></select>
+            </div>
+          </div>
+          <div class="level-item">
+            <div class="button is-focused is-danger" onclick='makeChart("chartContainer0")'>submit</div>
+          </div>
+        </div>
+        <div class="level right">
+          <div class="level-item">
+            <div class="select">
+              <select id="selectopt1"></select>
+            </div>
+          </div>
+          <div class="level-item">
+            <div class="button is-focused is-danger" onclick='makeChart("chartContainer1")'>submit</div>
+          </div>
+        </div>
+      </div>
+      <div class="tile is-ancestor">
+        <div class="tile is-6">
+          <div class="tile is-parent">
+            <div class="tile is-child">
+              <input type="range" name="weight" id="range0" value="100" min="1" max="100" oninput="rangeVal0.value = range0.value" style="width: 80%;">
+              <output id="rangeVal0"></output>
+              <div id="chartContainer0" style="height: 300px; width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tile">
+        <div class="tile is-parent">
+          <div class="tile is-child">
+            <input type="range" name="weight" id="range1" value="100" min="1" max="100" oninput="rangeVal1.value = range1.value" style="width: 80%;">
+            <output id="rangeVal1"></output>
+            <div id="chartContainer1" style="height: 300px; width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="chartContainer" style="height: 400px; width: 100%;"></div>
+  </section>
 </body>
-
 </html>
