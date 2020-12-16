@@ -18,7 +18,7 @@
 
     var names = {};
 
-    var db = new PouchDB('https://3ffa1a56-7379-4c15-8384-d5bfbb10abce-bluemix:5ee1b0b316e69e42d89479dda45999bbdfcaa5412bea04d820688939de4adcd1@3ffa1a56-7379-4c15-8384-d5bfbb10abce-bluemix.cloudantnosqldb.appdomain.cloud/crypto');
+    var db = new PouchDB('https://3ffa1a56-7379-4c15-8384-d5bfbb10abce-bluemix.cloudant.com/crypto');
     var changes = db.changes({
       since: 'now',
       live: true,
@@ -234,7 +234,6 @@
         </div>
       </div>
     </div>
-    <div id="chartContainer" style="height: 400px; width: 100%;"></div>
-  </section>
+  </div>
 </body>
 </html>
